@@ -1,0 +1,12 @@
+Lab: Gatekeeper + Argo CD Security for Splunk (Dev/Test/Prod)
+What this lab enforces
+
+1) ArgoCD Applications must deploy only to the correct namespace by env
+    splunk-prod app (env=prod) → only splunk-prod namespace
+    splunk-dev app (env=dev) → only splunk-dev namespace
+    splunk-test app (env=test) → only splunk-test namespace
+
+2) The splunk Service port is locked by env
+    splunk-prod namespace → Service port must be 8091
+    splunk-dev namespace → Service port must be 28091
+    splunk-test namespace → Service port must be 18091
