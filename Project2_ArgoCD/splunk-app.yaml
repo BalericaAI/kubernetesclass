@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: splunk
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/<ORG>/<REPO>.git
+    targetRevision: main
+    path: splunk
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: splunk
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+
+# kubectl apply -f splunk-app.yaml
