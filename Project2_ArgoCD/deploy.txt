@@ -1,1 +1,7 @@
+kubectl apply -f argocd-namespace.yaml
+kubectl apply -f argocd-deploy.yaml
+kubectl apply -f argocd-repo.yaml
+kubectl apply -f argocd-controller.yaml
+kubectl apply -f argocd-port.yaml
+kubectl apply -f argocd-chewbacca.yaml
 
