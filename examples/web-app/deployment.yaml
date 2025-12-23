@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webapp
+  labels:
+    app: webapp
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: webapp
+  template:
+    metadata:
+      labels:
+        app: webapp
+        version: v1
+    spec:
+      containers:
+      - name: webapp
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+          name: http
+        
+        # Environment variables from ConfigMap
+        envFrom:
+        - configMapRef:
+            name: webapp-config
+        
+        # Environment variables from Secret
+        env:
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: webapp-secret
+              key: DB_USERNAME
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: webapp-secret
+              key: DB_PASSWORD
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: webapp-secret
+              key: API_KEY
+        
+        # Resource limits
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        
+        # Health checks
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        
+        # Mount config file
+        volumeMounts:
+        - name: config
+          mountPath: /etc/app
+      
+      volumes:
+      - name: config
+        configMap:
+          name: webapp-config
+          items:
+          - key: app.conf
+            path: app.conf
