@@ -1,0 +1,42 @@
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8sargoappenvironment
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sArgoAppEnvironment
+      validation:
+        openAPIV3Schema:
+          properties:
+            envLabelKey:
+              type: string
+            allowedNamespaceByEnv:
+              type: object
+              additionalProperties:
+                type: string
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8sargoappenvironment
+
+        is_argocd_app {
+          input.review.kind.kind == "Application"
+          input.review.kind.group == "argoproj.io"
+        }
+
+        violation[{"msg": msg}] {
+          is_argocd_app
+          env_key := input.parameters.envLabelKey
+          env := input.review.object.metadata.labels[env_key]
+          env != ""
+
+          allowed := input.parameters.allowedNamespaceByEnv[env]
+          allowed != ""
+
+          ns := input.review.object.spec.destination.namespace
+          ns != allowed
+
+          msg := sprintf("ArgoCD Application env=%v must deploy only to namespace %v (got %v)", [env, allowed, ns])
+        }
