@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-application-controller
+  namespace: argocd
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-application-controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: argocd-application-controller
+    spec:
+      containers:
+        - name: controller
+          image: quay.io/argoproj/argocd:v2.10.7
+          command: ["/usr/local/bin/argocd-application-controller"]
+
+
+# kubectl apply -f argocd-controller.yaml
