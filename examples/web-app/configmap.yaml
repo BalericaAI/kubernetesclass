@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: webapp-config
+  labels:
+    app: webapp
+data:
+  # Application settings
+  APP_NAME: "My Web Application"
+  APP_ENV: "production"
+  LOG_LEVEL: "info"
+  
+  # Database settings (non-sensitive)
+  DB_HOST: "postgres-service"
+  DB_PORT: "5432"
+  DB_NAME: "webapp_db"
+  
+  # Cache settings
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+  
+  # Application config file
+  app.conf: |
+    server {
+      port = 8080
+      timeout = 30s
+    }
+    
+    cache {
+      ttl = 300
+      max_size = 1000
+    }
+    
+    features {
+      enable_api = true
+      enable_metrics = true
+    }
