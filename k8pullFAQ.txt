@@ -1,0 +1,123 @@
+Kubernetes Image Pulling — FAQ (Read Before You Panic)
+
+Q1: Why does docker pull work on my laptop but my Pod still fails?
+
+Short answer: Your laptop is not the Kubernetes node.
+
+Long answer:
+When Kubernetes starts a Pod, the node (EC2 VM / GCE VM) pulls the image — not your laptop and not kubectl.
+Your laptop credentials are irrelevant unless you copied them into Kubernetes (imagePullSecret).
+
+Rule: If the node can’t pull the image, the Pod will never start.
+
+Q2: Who actually pulls the image in Kubernetes?
+
+The node. Always.
+More precisely:
+kubelet on the node tells the container runtime (containerd/docker) to pull the image.
+The registry only sees the node’s identity (or credentials you gave Kubernetes).
+Pods do not talk to registries directly.
+
+Q3: What identity does the node use to pull images?
+
+That depends on the cluster setup:
+
+EKS: the EC2 node’s IAM role
+GKE: the node pool’s service account
+
+Any cluster: an imagePullSecret if configured
+This identity must have permission to read from the registry.
+
+Q4: What is ImagePullBackOff really telling me?
+
+It means:
+“The node tried to pull the image and failed.”
+
+Common reasons:
+image name or tag doesn’t exist
+registry requires authentication
+node does not have permission
+wrong registry URL
+
+It is not a Kubernetes bug and not a YAML syntax problem.
+
+Q5: Do I need docker login on my laptop?
+Only for local testing.
+
+docker login:
+
+helps you verify the image exists
+helps you test credentials locally
+
+It does nothing for Kubernetes unless you turn it into an imagePullSecret.
+
+Q6: When do I need an imagePullSecret?
+
+You need one when:
+the registry is private
+the node identity does not have access
+you’re pulling from an external or third-party registry
+you don’t control node IAM (common in shared clusters)
+
+You usually do not need one in:
+EKS → ECR (node IAM handles it)
+GKE → Artifact Registry (node SA handles it)
+
+Q7: Where do image pull credentials live?
+
+One of three places:
+Cloud IAM (preferred)
+Node IAM role (EKS)
+Node pool service account (GKE)
+
+Kubernetes Secret
+imagePullSecret
+
+Workload Identity / IRSA (advanced)
+Pod-bound cloud identity
+
+If you don’t know where your credentials are, that’s your bug.
+
+Q8: Why does Kubernetes keep retrying image pulls?
+Because Kubernetes assumes the failure might be temporary.
+
+It retries with exponential backoff until:
+the image becomes available
+permissions are fixed
+or the Pod is deleted
+
+This is why you’ll see:
+Pulling image...
+Failed to pull image...
+Back-off pulling image...
+
+Q9: How do I know which registry Kubernetes is trying to pull from?
+
+Run:
+kubectl get pod <pod> -o jsonpath='{.spec.containers[*].image}'
+
+Then:
+read the registry hostname
+confirm permissions for that registry
+
+Q10: How do I debug image pull failures correctly?
+Always start with:
+kubectl describe pod <pod>
+
+Then ask:
+Does the image name exist?
+Is it public or private?
+What identity is pulling it?
+Does that identity have permission?
+If you skip these questions, you will waste time.
+
+
+kubectl apply:
+
+sends YAML to the API server
+
+does not touch images
+
+does not validate registry access
+
+Image pulling happens later, on the node.
