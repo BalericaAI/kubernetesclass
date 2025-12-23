@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: splunk
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: splunk
+  strategy:
+    type: Recreate   # IMPORTANT for stateful apps
+  template:
+    metadata:
+      labels:
+        app: splunk
+    spec:
+      containers:
+        - name: splunk
+          image: <your-registry>/splunk:latest
+          ports:
+            - containerPort: 8091
+          env:
+            - name: SPLUNK_START_ARGS
+              value: "--accept-license"
+            - name: SPLUNK_PASSWORD
+              value: "ChangeMe123!"   # TEACH: move to Secret later
+          volumeMounts:
+            - name: splunk-storage
+              mountPath: /opt/splunk
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "2Gi"
+            limits:
+              cpu: "1"
+              memory: "4Gi"
+      volumes:
+        - name: splunk-storage
+          persistentVolumeClaim:
+            claimName: splunk-pvc
