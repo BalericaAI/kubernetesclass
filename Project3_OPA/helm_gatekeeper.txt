@@ -1,0 +1,17 @@
+helm repo add gatekeeper https://open-policy-agent.github.io/gatekeeper/charts
+helm repo update
+
+
+kubectl create namespace gatekeeper-system
+
+helm install gatekeeper gatekeeper/gatekeeper \
+  --namespace gatekeeper-system \
+  --set replicas=2
+
+  kubectl -n gatekeeper-system get pods
+kubectl -n gatekeeper-system get svc
+kubectl get crd | grep gatekeeper
+
+You should see pods like:
+  gatekeeper-controller-manager-*
+  gatekeeper-audit-* (depending on chart version/settings)
