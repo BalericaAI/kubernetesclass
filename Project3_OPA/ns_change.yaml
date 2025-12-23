@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: splunk-prod
+  labels:
+    env: prod
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: splunk-dev
+  labels:
+    env: dev
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: splunk-test
+  labels:
+    env: test
