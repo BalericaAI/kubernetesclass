@@ -1,1 +1,16 @@
 
+helm repo add gatekeeper https://open-policy-agent.github.io/gatekeeper/charts
+helm repo update
+kubectl create namespace gatekeeper-system
+
+helm install gatekeeper gatekeeper/gatekeeper \
+  --namespace gatekeeper-system \
+  --set replicas=2
+
+Verify 
+
+kubectl -n gatekeeper-system get pods
+kubectl get crd | grep gatekeeper
+kubectl get validatingwebhookconfigurations | grep gatekeeper
+
+
