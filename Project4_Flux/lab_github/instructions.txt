@@ -1,1 +1,25 @@
 
+“Day 1 Flux → Splunk” lab with:
+
+1) install Flux controllers
+2) create GitHub GitRepository source
+3) create Kustomization pointing to clusters/dev/splunk
+4) a minimal Splunk skeleton (namespace + service + statefulset placeholder) so students see it reconcile
+
+I’ll assume:
+  branch = main
+  repo path = clusters/dev/splunk
+  namespace = splunk-dev
+
+Part 1 — Install Flux (cluster side)
+
+kubectl apply -f https://github.com/fluxcd/flux2/releases/latest/download/install.yaml
+kubectl -n flux-system get pods
+
+Expected: flux controllers running in flux-system.
+
+Part 2 — Connect Flux to your public GitHub repo
+01-gitrepository.yaml
+
+Apply
+kubectl apply -f 01-gitrepository.yaml
