@@ -1,0 +1,17 @@
+# In your GitHub repo, add:
+
+# clusters/dev/splunk/service.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: splunk
+  namespace: splunk-dev
+spec:
+  type: ClusterIP
+  selector:
+    app: splunk
+  ports:
+    - name: web
+      port: 8091
+      targetPort: 8091
