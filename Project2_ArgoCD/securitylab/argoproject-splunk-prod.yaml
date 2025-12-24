@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: splunk-prod
+  namespace: argocd
+spec:
+  description: "Splunk PROD: only deploy to splunk-prod namespace"
+  sourceRepos:
+    - "https://github.com/<ORG>/<REPO>.git"
+
+  destinations:
+    - namespace: splunk-prod
+      server: https://kubernetes.default.svc
+
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
