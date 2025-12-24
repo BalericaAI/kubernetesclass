@@ -40,3 +40,13 @@ kubectl -n flux-system describe kustomization splunk-dev
 
 Error Message: If the folder doesn’t exist yet, Flux will report an error — that’s normal until you push the repo structure.
 
+Part 4 — Create the Git repo structure + minimal Splunk manifests
+
+In your GitHub repo, add:
+
+1) clusters/dev/splunk/kustomization.yaml
+2) clusters/dev/splunk/namespace.yaml
+3) clusters/dev/splunk/service.yaml
+
+(Expose Splunk Web or mgmt via ClusterIP as a demo. Port here is your choice; you can change later.)
+
