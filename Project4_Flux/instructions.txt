@@ -1,0 +1,60 @@
+1) Install Flux controllers (cluster-side)
+2) Connect Flux to a Git repo (GitRepository)
+3) Tell Flux what folder to apply (Kustomization)
+4) Put Splunk manifests in that folder
+
+I’ll include both:
+  Flux CLI bootstrap (best experience)
+  Pure YAML install (if you don’t want to rely on CLI)
+
+  repo/
+  clusters/
+    dev/
+      flux-system/           # created by bootstrap (Flux controllers + sync)
+      splunk/                # your Splunk manifests live here
+        kustomization.yaml
+        namespace.yaml
+        statefulset.yaml
+        service.yaml
+        ...
+
+
+Option A (Recommended): Flux CLI bootstrap (fastest)
+0) Prereqs (student machine)
+  kubectl works against the cluster
+  git installed
+  flux CLI installed (students install once)
+
+Verify cluster access:
+  kubectl cluster-info
+  kubectl get nodes
+
+1) Install Flux onto the cluster + connect it to GitHub
+
+This creates:
+  Flux controllers in flux-system
+  a deploy key / token setup
+  sync objects that point to your repo
+
+GitHub example:
+flux bootstrap github \
+  --owner=<GITHUB_ORG_OR_USER> \
+  --repository=<REPO_NAME> \
+  --branch=main \
+  --path=clusters/dev \
+  --personal
+
+Verify: “Bootstrap installs Flux + creates the first reconciliation loop from Git.” 
+
+kubectl -n flux-system get pods
+flux check
+flux get sources git -A
+flux get kustomizations -A
+
+Option B: YAML-only install + GitRepository/Kustomization (no bootstrap)
+1) Install Flux controllers (official install manifest)
+
+kubectl apply -f https://github.com/fluxcd/flux2/releases/latest/download/install.yaml
+
+
+
