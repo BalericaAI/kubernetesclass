@@ -22,9 +22,21 @@ Even if you don’t wire SSO yet, this teaches the RBAC mechanics.
 2) Create/Update argocd-rbac-cm
 argocd-rbac-cm.yaml
 
+Then Apply
 kubectl apply -f argocd-rbac-cm.yaml
-
 kubectl -n argocd rollout restart deployment argocd-server
-
 kubectl -n argocd get cm argocd-rbac-cm -o yaml | sed -n '1,200p'
 
+3) Name alignment (IMPORTANT)
+Those RBAC rules reference application “project/name” patterns like:
+  splunk-dev/*
+  splunk-test/*
+  splunk-prod/*
+
+This assumes:
+  Your Argo AppProject names are splunk-dev, splunk-test, splunk-prod
+  Your Applications are in those projects
+
+Confirm:
+kubectl -n argocd get appprojects
+kubectl -n argocd get applications -o wide
