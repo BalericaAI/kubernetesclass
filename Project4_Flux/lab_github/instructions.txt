@@ -137,4 +137,29 @@ I’ll give you both TLS modes:
   A) Self-signed TLS (works anywhere, perfect for labs)
   B) Let’s Encrypt HTTP-01 (requires real DNS + public ingress)
 
+Install Ingress-NGINX (one-time, cluster)
+Apply official manifest (simple)
 
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
+
+Verify:
+kubectl -n ingress-nginx get pods
+kubectl -n ingress-nginx get svc
+
+You should see a LoadBalancer service (cloud) or NodePort (depends on environment).
+
+Install cert-manager (one-time, cluster)
+Apply cert-manager manifest (includes CRDs)
+
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
+
+Verify:
+kubectl -n cert-manager get pods
+kubectl get crd | grep cert-manager
+
+Add TLS for Splunk (in Git repo)
+Add these files under:
+clusters/dev/splunk/
+Update your kustomization.yaml to include them.
+
+clusters/dev/splunk/kustomization.yaml
