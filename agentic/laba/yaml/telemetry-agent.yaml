@@ -1,0 +1,116 @@
+# Telemetry Correlation Agent
+#
+# Authenticates FIRST through the MCP gateway (mTLS client cert),
+# then correlates telemetry and enriches findings with live cluster
+# state fetched through the authenticated MCP session.
+#
+# Prerequisites:
+#   1. The mcp-gateway stack is running (see mcp/walkthru.md).
+#   2. A client certificate signed by the client CA, stored as a secret:
+#        kubectl create secret tls telemetry-agent-client-cert \
+#          --cert=telemetry-agent.crt \
+#          --key=telemetry-agent.key \
+#          -n ai-agents
+#      (see mcp/telemetry-agent-walkthru.md for issuing the cert)
+#   3. Build and push the image:
+#        cp docker/telemetry_agent /tmp/telemetry-build/Dockerfile
+#        cp python/telemetry-correlation-agent.py /tmp/telemetry-build/
+#        docker build -t gcr.io/PROJECT_ID/telemetry-agent:lab1c /tmp/telemetry-build
+#        docker push gcr.io/PROJECT_ID/telemetry-agent:lab1c
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ai-agents
+  labels:
+    purpose: ai-agents
+    environment: lab
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: telemetry-agent-sa
+  namespace: ai-agents
+automountServiceAccountToken: false
+
+---
+apiVersion: batch/v1
+kind: CronJob
+
+metadata:
+  name: telemetry-correlation-agent
+  namespace: ai-agents
+
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+
+      template:
+        metadata:
+          labels:
+            app: telemetry-correlation-agent
+
+        spec:
+          serviceAccountName: telemetry-agent-sa
+          restartPolicy: Never
+
+          containers:
+          - name: telemetry-agent
+
+            # Replace PROJECT_ID with your project ID
+            image: gcr.io/PROJECT_ID/telemetry-agent:lab1c
+
+            env:
+            - name: MCP_GATEWAY_URL
+              value: "https://mcp-gateway.mcp-gateway.svc.cluster.local"
+            - name: MCP_CLIENT_CERT
+              value: "/etc/mcp/certs/tls.crt"
+            - name: MCP_CLIENT_KEY
+              value: "/etc/mcp/certs/tls.key"
+
+            resources:
+              requests:
+                cpu: "100m"
+                memory: "128Mi"
+              limits:
+                cpu: "250m"
+                memory: "256Mi"
+
+            securityContext:
+              allowPrivilegeEscalation: false
+
+            volumeMounts:
+
+            # Machine identity: the client certificate the gateway verifies
+            - name: mcp-client-cert
+              mountPath: /etc/mcp/certs
+              readOnly: true
+
+            # Incoming telemetry events to correlate
+            - name: telemetry-in
+              mountPath: /opt/ai-soc/incoming
+              readOnly: true
+
+            # Correlated findings output
+            - name: telemetry-out
+              mountPath: /opt/ai-soc/correlated
+
+          volumes:
+
+          - name: mcp-client-cert
+            secret:
+              secretName: telemetry-agent-client-cert
+
+          - name: telemetry-in
+            configMap:
+              name: telemetry-sample-events
+
+          - name: telemetry-out
+            emptyDir: {}

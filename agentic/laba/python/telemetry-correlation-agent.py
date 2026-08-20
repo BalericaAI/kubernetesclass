@@ -1,17 +1,119 @@
-```python
 import os
+import sys
 import json
 from collections import defaultdict
 from datetime import datetime
+
+import requests
 
 # ==========================================
 # CONFIG
 # ==========================================
 
-TELEMETRY_DIR = "/opt/ai-soc/incoming"
+TELEMETRY_DIR = os.environ.get(
+    "TELEMETRY_DIR",
+    "/opt/ai-soc/incoming"
+)
 
-CORRELATED_OUTPUT = \
-"/opt/ai-soc/correlated/correlated_findings.json"
+CORRELATED_OUTPUT = os.environ.get(
+    "CORRELATED_OUTPUT",
+    "/opt/ai-soc/correlated/correlated_findings.json"
+)
+
+# ==========================================
+# MCP GATEWAY (Zero Trust entry point)
+# ==========================================
+# The agent does not talk to the MCP server directly.
+# It authenticates through the mTLS gateway by presenting
+# a client certificate signed by the trusted client CA.
+
+MCP_GATEWAY_URL = os.environ.get(
+    "MCP_GATEWAY_URL",
+    "https://mcp-gateway.mcp-gateway.svc.cluster.local"
+)
+
+MCP_CLIENT_CERT = os.environ.get(
+    "MCP_CLIENT_CERT",
+    "/etc/mcp/certs/tls.crt"
+)
+
+MCP_CLIENT_KEY = os.environ.get(
+    "MCP_CLIENT_KEY",
+    "/etc/mcp/certs/tls.key"
+)
+
+# Optional: CA bundle to verify the gateway's server cert.
+# The lab uses a self-signed server cert whose SAN does not
+# match the in-cluster DNS name, so verification is off by
+# default. In production, issue a proper cert and set this.
+MCP_SERVER_CA = os.environ.get("MCP_SERVER_CA", "")
+
+VERIFY = MCP_SERVER_CA if MCP_SERVER_CA else False
+
+if not VERIFY:
+    requests.packages.urllib3.disable_warnings()
+
+# ==========================================
+# STEP 1 - AUTHENTICATE VIA THE MCP SERVER
+# ==========================================
+# Machine identity, proven cryptographically:
+# if this call succeeds, the gateway validated our
+# client certificate and the MCP server trusts us.
+
+
+def authenticate_with_mcp():
+
+    print("=== MCP AUTHENTICATION ===")
+    print(f"Gateway: {MCP_GATEWAY_URL}")
+
+    try:
+
+        response = requests.get(
+            f"{MCP_GATEWAY_URL}/tools",
+            cert=(MCP_CLIENT_CERT, MCP_CLIENT_KEY),
+            verify=VERIFY,
+            timeout=10
+        )
+
+        response.raise_for_status()
+
+        tools = response.json().get("tools", [])
+
+        print("Authentication: SUCCESS")
+        print(f"MCP tools available: {tools}\n")
+
+        return tools
+
+    except requests.exceptions.SSLError as e:
+
+        print("Authentication: FAILED (TLS handshake rejected)")
+        print(f"Details: {e}")
+        sys.exit(1)
+
+    except Exception as e:
+
+        print("Authentication: FAILED")
+        print(f"Details: {e}")
+        sys.exit(1)
+
+
+def mcp_tool(name, payload=None):
+    """Call an MCP tool through the authenticated mTLS channel."""
+
+    response = requests.post(
+        f"{MCP_GATEWAY_URL}/tool/{name}",
+        json=payload or {},
+        cert=(MCP_CLIENT_CERT, MCP_CLIENT_KEY),
+        verify=VERIFY,
+        timeout=30
+    )
+
+    response.raise_for_status()
+
+    return response.json()
+
+
+tools = authenticate_with_mcp()
 
 # ==========================================
 # RISK SCORING
@@ -26,14 +128,10 @@ RISK_SCORES = {
 }
 
 # ==========================================
-# STORAGE
+# STEP 2 - LOAD EVENTS
 # ==========================================
 
 student_findings = defaultdict(list)
-
-# ==========================================
-# LOAD EVENTS
-# ==========================================
 
 for root, dirs, files in os.walk(TELEMETRY_DIR):
 
@@ -66,7 +164,7 @@ for root, dirs, files in os.walk(TELEMETRY_DIR):
             )
 
 # ==========================================
-# CORRELATION
+# STEP 3 - CORRELATION
 # ==========================================
 
 results = []
@@ -120,16 +218,48 @@ for student_id, events in student_findings.items():
     results.append(result)
 
 # ==========================================
+# STEP 4 - ENRICH VIA MCP (live cluster state)
+# ==========================================
+# Uses the authenticated session to attach a snapshot
+# of running pods to the correlated findings.
+
+cluster_snapshot = ""
+
+if "get_pods" in tools:
+
+    try:
+
+        cluster_snapshot = mcp_tool("get_pods").get(
+            "pods",
+            ""
+        )
+
+    except Exception as e:
+
+        print(f"MCP get_pods failed: {e}")
+
+report = {
+    "generated_at": str(datetime.utcnow()),
+    "mcp_gateway": MCP_GATEWAY_URL,
+    "findings": results,
+    "cluster_snapshot": cluster_snapshot
+}
+
+# ==========================================
 # OUTPUT RESULTS
 # ==========================================
 
+os.makedirs(
+    os.path.dirname(CORRELATED_OUTPUT),
+    exist_ok=True
+)
+
 with open(CORRELATED_OUTPUT, "w") as f:
 
-    json.dump(results, f, indent=2)
+    json.dump(report, f, indent=2)
 
 print("\n=== CORRELATED FINDINGS ===\n")
 
 for result in results:
 
     print(json.dumps(result, indent=2))
-```
