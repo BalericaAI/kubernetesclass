@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-server
+  namespace: mcp-gateway
+  labels:
+    app: mcp-server
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: mcp-server
+
+  template:
+    metadata:
+      labels:
+        app: mcp-server
+
+    spec:
+      containers:
+        - name: mcp-server
+
+          # Temporary backend used to validate the gateway architecture.
+          # Replace this image later with the actual MCP server.
+          image: ealen/echo-server:latest
+
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+
+          securityContext:
+            allowPrivilegeEscalation: false
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-server
+  namespace: mcp-gateway
+  labels:
+    app: mcp-server
+
+spec:
+  type: ClusterIP
+
+  selector:
+    app: mcp-server
+
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8080
+      targetPort: 80
