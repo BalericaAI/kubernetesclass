@@ -1,4 +1,3 @@
-```yaml id="2b3e11"
 apiVersion: apps/v1
 kind: Deployment
 
@@ -38,4 +37,3 @@ spec:
         securityContext:
           runAsNonRoot: true
           readOnlyRootFilesystem: true
-```

@@ -1,36 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: mcp-gateway
+  namespace: mcp-gateway
+  labels:
+    app: mcp-gateway
+
 spec:
-  serviceAccountName: mcp-gateway-sa
+  replicas: 1
 
-  containers:
-  - name: nginx
+  selector:
+    matchLabels:
+      app: mcp-gateway
 
-    image: nginx:1.27-alpine
-    imagePullPolicy: IfNotPresent
+  template:
+    metadata:
+      labels:
+        app: mcp-gateway
 
-    ports:
-    - containerPort: 443
+    spec:
+      serviceAccountName: mcp-gateway-sa
 
-    securityContext:
-      allowPrivilegeEscalation: false
+      containers:
+      - name: nginx
 
-    readinessProbe:
-      tcpSocket:
-        port: 443
+        image: nginx:1.27-alpine
+        imagePullPolicy: IfNotPresent
 
-    livenessProbe:
-      tcpSocket:
-        port: 443
+        ports:
+        - containerPort: 443
 
-    volumeMounts:
+        securityContext:
+          allowPrivilegeEscalation: false
 
-    - name: nginx-config
-      mountPath: /etc/nginx/conf.d/default.conf
-      subPath: default.conf
+        readinessProbe:
+          tcpSocket:
+            port: 443
 
-    - name: tls-secret
-      mountPath: /etc/nginx/tls
-      readOnly: true
+        livenessProbe:
+          tcpSocket:
+            port: 443
 
-    - name: client-ca
-      mountPath: /etc/nginx/client-ca
-      readOnly: true
+        volumeMounts:
+
+        - name: nginx-config
+          mountPath: /etc/nginx/conf.d/default.conf
+          subPath: default.conf
+
+        - name: tls-secret
+          mountPath: /etc/nginx/tls
+          readOnly: true
+
+        - name: client-ca
+          mountPath: /etc/nginx/client-ca
+          readOnly: true
+
+      volumes:
+
+      - name: nginx-config
+        configMap:
+          name: mcp-nginx-config
+
+      # Created in Step 3 of the walkthru:
+      #   kubectl create secret tls mcp-server-tls --cert=server.crt --key=server.key -n mcp-gateway
+      - name: tls-secret
+        secret:
+          secretName: mcp-server-tls
+
+      # Created in Step 3 of the walkthru:
+      #   kubectl create secret generic mcp-client-ca --from-file=ca.crt -n mcp-gateway
+      - name: client-ca
+        secret:
+          secretName: mcp-client-ca
