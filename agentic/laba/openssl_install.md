@@ -53,6 +53,32 @@ openssl version
 > PowerShell/cmd users with a native OpenSSL install (Option B) are **not**
 > affected — this is purely a Git Bash/MSYS behavior.
 
+#### 🏫 Git Bash class standard (do this instead of memorizing fixes)
+
+Make path conversion a non-issue for the whole session — **first line after
+opening Git Bash, every time**:
+
+```bash
+export MSYS_NO_PATHCONV=1
+```
+
+After that, every command in `mcp_install.md` and the walkthrus works exactly
+as written — normal `-subj "/CN=..."`, no double slashes, nothing special.
+To make it permanent so students never think about it again:
+
+```bash
+echo 'export MSYS_NO_PATHCONV=1' >> ~/.bashrc
+```
+
+Two more Git Bash survival rules for the Kubernetes part of the lab:
+
+1. **Interactive commands need `winpty`.** `kubectl exec -it ...` or
+   `docker run -it ...` fail with `the input device is not a TTY`.
+   Prefix them: `winpty kubectl exec -it <pod> -- sh`.
+2. **Stay in Git Bash.** The docs use `\` line continuations and `$(...)`
+   substitutions — they work in Git Bash but not in PowerShell/cmd. Mixing
+   shells mid-lab is how certs end up in one world and kubectl in another.
+
 ### Option B: native install via winget
 
 In PowerShell:
