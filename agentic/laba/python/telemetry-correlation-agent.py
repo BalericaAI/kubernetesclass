@@ -135,6 +135,11 @@ student_findings = defaultdict(list)
 
 for root, dirs, files in os.walk(TELEMETRY_DIR):
 
+    # ConfigMap volume mounts expose the real files a second time
+    # under hidden ..data / ..<timestamp> dirs -- skip those so
+    # each event is only counted once.
+    dirs[:] = [d for d in dirs if not d.startswith("..")]
+
     for file in files:
 
         if not file.endswith(".json"):

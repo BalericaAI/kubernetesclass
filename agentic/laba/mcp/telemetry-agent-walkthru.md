@@ -96,8 +96,9 @@ Delete the cert secret and run the job again:
         kubectl delete secret telemetry-agent-client-cert -n ai-agents
 
 The pod fails to start (missing identity). Recreate the secret with a
-cert signed by a DIFFERENT CA and the gateway rejects the handshake:
+cert signed by a DIFFERENT CA and the gateway rejects the request:
 
-        Authentication: FAILED (TLS handshake rejected)
+        Authentication: FAILED
+        Details: 400 Client Error: Bad Request for url: https://mcp-gateway...
 
 No valid machine identity, no MCP access.
