@@ -1,29 +1,83 @@
+# The REAL MCP server (python/mcp-server.py behind the mcp-gateway).
+#
+# This replaces the temporary echo-server backend from mcp_server.yaml.
+# Because the Deployment and Service share the same names, applying this
+# file swaps the backend in place -- the gateway keeps proxying to
+# mcp-server.mcp-gateway.svc.cluster.local:8080 without any nginx changes.
+#
+# Prerequisites:
+#   1. Build and push the image (from agentic/laba):
+#        cp docker/mcp_docker.txt /tmp/mcp-build/Dockerfile
+#        cp python/mcp-server.py  /tmp/mcp-build/
+#        docker build -t gcr.io/PROJECT_ID/mcp-server:lab1c /tmp/mcp-build
+#        docker push gcr.io/PROJECT_ID/mcp-server:lab1c
+#   2. Replace PROJECT_ID below with your real project ID.
+#   3. kubectl apply -f mcp-server-rbac.yaml   (the server runs kubectl, so it needs RBAC)
+
 apiVersion: apps/v1
 kind: Deployment
+
 metadata:
   name: mcp-server
+  namespace: mcp-gateway
+  labels:
+    app: mcp-server
+
 spec:
   replicas: 1
+
   selector:
     matchLabels:
       app: mcp-server
+
   template:
     metadata:
       labels:
         app: mcp-server
+
     spec:
-      serviceAccountName: vertex-agent-ksa
+      serviceAccountName: mcp-server-sa
+
       containers:
       - name: mcp-server
+
+        # Replace PROJECT_ID with your project ID
         image: gcr.io/PROJECT_ID/mcp-server:lab1c
+
+        ports:
+        - name: http
+          containerPort: 9000    # mcp-server.py listens on 9000
+          protocol: TCP
+
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "256Mi"
+
+        securityContext:
+          allowPrivilegeEscalation: false
+
 ---
 apiVersion: v1
 kind: Service
+
 metadata:
   name: mcp-server
+  namespace: mcp-gateway
+  labels:
+    app: mcp-server
+
 spec:
+  type: ClusterIP
+
   selector:
     app: mcp-server
+
   ports:
-  - port: 9000
-    targetPort: 9000
+  - name: http
+    protocol: TCP
+    port: 8080         # what the nginx gateway proxies to
+    targetPort: 9000   # what mcp-server.py listens on

@@ -39,9 +39,15 @@ data:
         # =====================================
         # MCP PROXY
         # =====================================
+        # Resolve the backend at request time (via cluster DNS) instead of
+        # at startup. Without this, nginx crash-loops if the mcp-server
+        # Service does not exist yet when the gateway starts.
+        resolver kube-dns.kube-system.svc.cluster.local valid=10s;
+
         location / {
 
-            proxy_pass http://mcp-server.mcp-gateway.svc.cluster.local:8080;
+            set $mcp_backend mcp-server.mcp-gateway.svc.cluster.local;
+            proxy_pass http://$mcp_backend:8080;
 
             proxy_http_version 1.1;
 
