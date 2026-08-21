@@ -1,0 +1,53 @@
+# Sample telemetry events for the telemetry-correlation-agent.
+# Schema: {"student_id": ..., "event_type": ...}
+# event_type must match the agent's RISK_SCORES keys:
+#   critical_cve, shell_spawn, tls_failure, cert_expiring, policy_violation
+
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: telemetry-sample-events
+  namespace: ai-agents
+
+data:
+
+  event-001.json: |
+    {
+      "student_id": "student-042",
+      "event_type": "shell_spawn",
+      "source": "falco",
+      "detail": "Shell spawned in app01 container"
+    }
+
+  event-002.json: |
+    {
+      "student_id": "student-042",
+      "event_type": "critical_cve",
+      "source": "trivy",
+      "detail": "CVE-2024-3094 in base image"
+    }
+
+  event-003.json: |
+    {
+      "student_id": "student-042",
+      "event_type": "policy_violation",
+      "source": "opa",
+      "detail": "Privileged pod admitted"
+    }
+
+  event-004.json: |
+    {
+      "student_id": "student-017",
+      "event_type": "cert_expiring",
+      "source": "cert-guardian",
+      "detail": "TLS cert expires in 7 days"
+    }
+
+  event-005.json: |
+    {
+      "student_id": "student-017",
+      "event_type": "tls_failure",
+      "source": "mcp-gateway",
+      "detail": "Client cert verification failed"
+    }
